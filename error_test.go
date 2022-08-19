@@ -11,7 +11,6 @@ import (
 
 func TestNew(t *testing.T) {
 	defaultOpts := []ErrOption{FmtNoStack(true)}
-	parent := NewTemplate(defaultOpts...)
 
 	type args struct {
 		opts []ErrOption
@@ -25,7 +24,7 @@ func TestNew(t *testing.T) {
 		{
 			"with parent error",
 			args{
-				opts: append(defaultOpts, WithParent(parent.New(WithCode(1)))),
+				opts: append(defaultOpts, WithParent(New(WithCode(1)))),
 			},
 			nil,
 			`{"parents":[{"code":1}]}`,

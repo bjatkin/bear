@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/bjatkin/bear/pkg/metrics"
@@ -166,45 +165,8 @@ func WithStdErr(buf io.Writer) ErrOption {
 
 // Error implements the error interface
 func (e *Error) Error() string {
-	// create a public type for json marshaling
-	// is there a better way to do this?
-	public := struct {
-		Parents  []json.RawMessage      `json:"parents,omitempty"`
-		ErrType  *ErrType               `json:"errType,omitempty"`
-		Tags     map[string]interface{} `json:"tags,omitempty"`
-		Labels   []string               `json:"labels,omitempty"`
-		Metrics  []*metrics.Metric      `json:"metrics,omitempty"`
-		Fmetrics []*metrics.FMetric     `json:"fmetrics,omitempty"`
-		Msg      *string                `json:"msg,omitempty"`
-		Code     *int                   `json:"code,omitempty"`
-		ExitCode *int                   `json:"exitCode,omitempty"`
-		Stack    []string               `json:"stack,omitempty"`
-	}{
-		ErrType:  e.errType,
-		Tags:     e.tags,
-		Labels:   mapToArray(e.labels),
-		Metrics:  e.metrics,
-		Fmetrics: e.fmetrics,
-		Msg:      e.msg,
-		Code:     e.code,
-		ExitCode: e.exitCode,
-	}
-
-	if e.noMsg {
-		public.Msg = nil
-	}
-
-	if !e.noParents {
-		for _, parent := range e.parents {
-			public.Parents = append(public.Parents, json.RawMessage([]byte(parent.Error())))
-		}
-	}
-
-	if !e.noStack {
-		for _, frame := range e.stack {
-			public.Stack = append(public.Stack, frame.String())
-		}
-	}
+	// create a jsonError for json marshaling
+	public := newJSONError(e)
 
 	// print data as json
 	var raw []byte
@@ -222,19 +184,6 @@ func (e *Error) Error() string {
 	}
 
 	return string(raw)
-}
-
-// mapToArray converts the map to an array
-func mapToArray(m map[string]struct{}) []string {
-	var slice []string
-	for m := range m {
-		slice = append(slice, m)
-	}
-
-	// sort the slice for consistent label order
-	sort.Strings(slice)
-
-	return slice
 }
 
 // Panic will conver the error into a panic, if print is true the error will be printed to stdErr
@@ -333,4 +282,22 @@ func (e *Error) WrapPanic(opts ...ErrOption) {
 
 		e.Add(WithParent(parent))
 	}
+}
+
+// IsBerr returns true if the given error is a bear error
+func IsBerr(e error) bool {
+	if _, ok := e.(*Error); ok {
+		return true
+	}
+	return false
+}
+
+// AsBerr returns the error and true if the given error is a bear error
+// otherwise it will convert the error into a bear error and return false
+func AsBerr(e error) (*Error, bool) {
+	if berr, ok := e.(*Error); ok {
+		return berr, ok
+	}
+
+	return New(WithMsg(e.Error())), true
 }

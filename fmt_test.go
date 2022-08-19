@@ -6,7 +6,6 @@ import (
 
 func TestNewFmt(t *testing.T) {
 	defaultOpts := []ErrOption{FmtNoStack(true)}
-	parent := NewTemplate(defaultOpts...)
 
 	type args struct {
 		opts []ErrOption
@@ -21,7 +20,7 @@ func TestNewFmt(t *testing.T) {
 			"with pretty print",
 			args{
 				opts: append(defaultOpts,
-					WithParent(parent.New(WithCode(2))),
+					WithParent(New(WithCode(2))),
 					WithExitCode(404),
 					FmtPrettyPrint(true),
 				),
@@ -39,7 +38,7 @@ func TestNewFmt(t *testing.T) {
 		{
 			"with no parents",
 			args{
-				opts: append(defaultOpts, WithParent(parent.New(WithCode(3))), FmtNoParents(true)),
+				opts: append(defaultOpts, WithParent(New(WithCode(3))), FmtNoParents(true)),
 			},
 			nil,
 			`{}`,
