@@ -2,6 +2,7 @@ package bear
 
 import (
 	"bytes"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -46,7 +47,7 @@ func TestNew(t *testing.T) {
 		{
 			"with labels",
 			args{
-				opts: append(defaultOpts, WithLabel("test"), WithLabel("default")),
+				opts: append(defaultOpts, WithLabels("test", "default")),
 			},
 			nil,
 			`{"labels":["default","test"]}`,
@@ -262,6 +263,214 @@ func TestError_Panic(t *testing.T) {
 			e.Panic(tt.args.print)
 
 			t.Error("Panic() code did not panic")
+		})
+	}
+}
+
+func TestError_Add(t *testing.T) {
+	type args struct {
+		opts []ErrOption
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			"add nothing",
+			args{},
+			`{}`,
+		},
+		{
+			"add code and labels",
+			args{
+				opts: []ErrOption{WithCode(1), WithLabels("test", "success")},
+			},
+			`{"labels":["success","test"],"code":1}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New(FmtNoStack(true)).Add(tt.args.opts...)
+
+			got := e.Add(tt.args.opts...)
+
+			gotErr := got.Error()
+			if gotErr != tt.want {
+				t.Errorf("Error.Add() error string was \n%v, want \n%v", gotErr, tt.want)
+			}
+		})
+	}
+}
+
+func TestError_HasLabel(t *testing.T) {
+	type fields struct {
+		labels map[string]struct{}
+	}
+	type args struct {
+		label string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			"nil labels",
+			fields{},
+			args{
+				label: "nil",
+			},
+			false,
+		},
+		{
+			"missing label",
+			fields{
+				labels: map[string]struct{}{"success": {}},
+			},
+			args{
+				label: "missing",
+			},
+			false,
+		},
+		{
+			"found label",
+			fields{
+				labels: map[string]struct{}{"success": {}},
+			},
+			args{
+				label: "success",
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &Error{
+				labels: tt.fields.labels,
+			}
+
+			if got := e.HasLabel(tt.args.label); got != tt.want {
+				t.Errorf("Error.HasLabel() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestError_HasTag(t *testing.T) {
+	type fields struct {
+		tags map[string]interface{}
+	}
+	type args struct {
+		tag string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			"nil tags",
+			fields{},
+			args{
+				tag: "nil",
+			},
+			false,
+		},
+		{
+			"missing tag",
+			fields{
+				tags: map[string]interface{}{"success": false},
+			},
+			args{
+				tag: "missing",
+			},
+			false,
+		},
+		{
+			"found tag",
+			fields{
+				tags: map[string]interface{}{"success": true},
+			},
+			args{
+				tag: "success",
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &Error{
+				tags: tt.fields.tags,
+			}
+			if got := e.HasTag(tt.args.tag); got != tt.want {
+				t.Errorf("Error.HasTag() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestError_GetTag(t *testing.T) {
+	type fields struct {
+		tags map[string]interface{}
+	}
+	type args struct {
+		tag string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   interface{}
+		wantOK bool
+	}{
+		{
+			"nil tags",
+			fields{},
+			args{
+				tag: "nil",
+			},
+			nil,
+			false,
+		},
+		{
+			"missing tag",
+			fields{
+				map[string]interface{}{"success": false},
+			},
+			args{
+				tag: "missing",
+			},
+			nil,
+			false,
+		},
+		{
+			"found tag",
+			fields{
+				map[string]interface{}{"success": true},
+			},
+			args{
+				tag: "success",
+			},
+			true,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &Error{
+				tags: tt.fields.tags,
+			}
+
+			got, gotOK := e.GetTag(tt.args.tag)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Error.GetTag() got = %v, want %v", got, tt.want)
+			}
+			if gotOK != tt.wantOK {
+				t.Errorf("Error.GetTag() gotOK = %v, wantOK %v", gotOK, tt.wantOK)
+			}
 		})
 	}
 }

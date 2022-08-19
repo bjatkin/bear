@@ -105,13 +105,15 @@ func WithTag(name string, value interface{}) ErrOption {
 	}
 }
 
-// WithLabel adds labels to the error
-func WithLabel(name string) ErrOption {
+// WithLabels adds one or more labels to the error
+func WithLabels(names ...string) ErrOption {
 	return func(e *Error) {
 		if e.labels == nil {
 			e.labels = make(map[string]struct{})
 		}
-		e.labels[name] = struct{}{}
+		for _, name := range names {
+			e.labels[name] = struct{}{}
+		}
 	}
 }
 
