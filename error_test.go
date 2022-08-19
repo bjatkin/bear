@@ -78,53 +78,6 @@ func TestNew(t *testing.T) {
 			nil,
 			`{"msg":"this is a test message"}`,
 		},
-		{
-			"with pretty print",
-			args{
-				opts: append(defaultOpts,
-					WithParent(parent.New(WithCode(2))),
-					WithExitCode(404),
-					FmtPrettyPrint(true),
-				),
-			},
-			nil,
-			`{
-  "parents": [
-    {
-      "code": 2
-    }
-  ],
-  "exitCode": 404
-}`,
-		},
-		{
-			"with not parents",
-			args{
-				opts: append(defaultOpts, WithParent(parent.New(WithCode(3))), FmtNoParents(true)),
-			},
-			nil,
-			`{}`,
-		},
-		{
-			"with stack",
-			args{},
-			func(e *Error) {
-				e.stack = []stackFrame{
-					{filename: "test.go", line: 100},
-					{filename: "test2.go", line: 50},
-					{filename: "final.go", line: 1},
-				}
-			},
-			`{"stack":["test.go:100","test2.go:50","final.go:1"]}`,
-		},
-		{
-			"with no message",
-			args{
-				opts: append(defaultOpts, WithMsg("this is a test message"), FmtNoMsg(true)),
-			},
-			nil,
-			`{}`,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
