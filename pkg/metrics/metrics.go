@@ -1,6 +1,9 @@
 package metrics
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // Metric is a tracker that usese an int to track a value
 type Metric struct {
@@ -30,9 +33,20 @@ func (m *Metric) Add(add int) {
 	m.metric += add
 }
 
+// MarshalJSON implements the marshaler interface
+func (m *Metric) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Name  string `json:"name"`
+		Value int    `json:"value"`
+	}{
+		m.name,
+		m.metric,
+	})
+}
+
 // String implements the stringer interface
 func (m *Metric) String() string {
-	return fmt.Sprintf("[%s]%d", m.name, m.metric)
+	return fmt.Sprintf("[%s] %d", m.name, m.metric)
 }
 
 // GetName returns the name of the metric
@@ -56,6 +70,10 @@ func AddMetrics(metrics ...Metric) int {
 
 // FilterMetrics takes a list of metrics and returns only those that satisfy the filter metric
 func FilterMetrics(metrics []Metric, filter func(Metric) bool) []Metric {
+	if filter == nil {
+		return metrics
+	}
+
 	var filtered []Metric
 	for _, metric := range metrics {
 		if filter(metric) {
@@ -94,6 +112,17 @@ func (m *FMetric) Add(add float64) {
 	m.metric += add
 }
 
+// MarshalJSON implements the marshaler interface
+func (m *FMetric) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Name  string  `json:"name"`
+		Value float64 `json:"value"`
+	}{
+		m.name,
+		m.metric,
+	})
+}
+
 // string implements the stringer interface
 func (m *FMetric) String() string {
 	return fmt.Sprintf("[%s] %.4f", m.name, m.metric)
@@ -110,6 +139,10 @@ func AddFMetrics(metrics ...FMetric) float64 {
 
 // FilterFMetrics takes a list of metrics and returns only those that satisfy the filter metric
 func FilterFMetrics(metrics []FMetric, filter func(FMetric) bool) []FMetric {
+	if filter == nil {
+		return metrics
+	}
+
 	var filtered []FMetric
 	for _, metric := range metrics {
 		if filter(metric) {
