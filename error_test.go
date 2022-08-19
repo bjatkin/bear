@@ -6,8 +6,6 @@ import (
 	"testing"
 )
 
-// TODO: test stack trace in it's own function
-
 func TestNew(t *testing.T) {
 	defaultOpts := []ErrOption{FmtNoStack(true)}
 	parent := NewTemplate(defaultOpts...)
@@ -51,7 +49,7 @@ func TestNew(t *testing.T) {
 				opts: append(defaultOpts, WithLabel("test"), WithLabel("default")),
 			},
 			nil,
-			`{"labels":["test","default"]}`,
+			`{"labels":["default","test"]}`,
 		},
 		{
 			"with error type",
@@ -125,52 +123,9 @@ func TestNew(t *testing.T) {
 				tt.setup(got)
 			}
 
-			if got.Error() != tt.want {
-				t.Errorf("New() error string = \n%s, want \n%s", got.Error(), tt.want)
-			}
-		})
-	}
-}
-
-func TestTemplate_New(t *testing.T) {
-	type fields struct {
-		opts []ErrOption
-	}
-	type args struct {
-		opts []ErrOption
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
-	}{
-		{
-			"empty template",
-			fields{
-				opts: []ErrOption{},
-			},
-			args{
-				opts: []ErrOption{WithCode(1), FmtNoStack(true)},
-			},
-			`{"code":1}`,
-		},
-		{
-			"no stack template",
-			fields{
-				opts: []ErrOption{FmtNoStack(true)},
-			},
-			args{
-				opts: []ErrOption{WithCode(1)},
-			},
-			`{"code":1}`,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := NewTemplate(tt.fields.opts...)
-			if got := tr.New(tt.args.opts...).Error(); got != tt.want {
-				t.Errorf("Template.New() = %v, want %v", got, tt.want)
+			gotErr := got.Error()
+			if gotErr != tt.want {
+				t.Errorf("New() error string was \n'%s', want \n'%s'", gotErr, tt.want)
 			}
 		})
 	}
@@ -181,26 +136,31 @@ func TestError_WrapPanic(t *testing.T) {
 		name      string
 		panicWith interface{}
 		want      string
+		wantErr   bool
 	}{
 		{
 			"panic with error code",
 			1,
 			`{"parents":[{"errType":"Panic Error","exitCode":1}]}`,
+			true,
 		},
 		{
 			"panic with uint64",
 			uint64(2),
 			`{"parents":[{"errType":"Panic Error","exitCode":2}]}`,
+			true,
 		},
 		{
 			"panic with string",
 			"panicing",
 			`{"parents":[{"errType":"Panic Error","msg":"panicing"}]}`,
+			true,
 		},
 		{
 			"panic with bool",
 			true,
 			`{"parents":[{"errType":"Panic Error","tags":{"type":"bool","value":true}}]}`,
+			true,
 		},
 		{
 			"panic with struct",
@@ -209,6 +169,13 @@ func TestError_WrapPanic(t *testing.T) {
 				str  string
 			}{true, "test"},
 			`{"parents":[{"errType":"Panic Error","tags":{"type":"struct { test bool; str string }","value":{}}}]}`,
+			true,
+		},
+		{
+			"no panic",
+			nil,
+			"",
+			false,
 		},
 	}
 	for _, tt := range tests {
@@ -217,8 +184,20 @@ func TestError_WrapPanic(t *testing.T) {
 				e = New(FmtNoStack(true))
 				defer (e.(*Error)).WrapPanic(FmtNoStack(true))
 
-				panic(tt.panicWith)
+				if tt.wantErr {
+					panic(tt.panicWith)
+				}
+
+				return nil
 			}()
+
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("WrapPanic() got err %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr {
+				// no need to do further checks on the error if we didn't even want it
+				return
+			}
 
 			if got := err.Error(); got != tt.want {
 				t.Fatalf("WrapPanic() got \n%s, want \n%s", got, tt.want)
