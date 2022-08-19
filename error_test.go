@@ -3,6 +3,7 @@ package bear
 import (
 	"bytes"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -10,7 +11,9 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	defaultOpts := []ErrOption{FmtNoStack(true)}
+	// default options to make testing easier
+	defaultOpts := []ErrOption{FmtNoStack(true), FmtNoID(true)}
+	hexReg := regexp.MustCompile(`[0-9a-f]{64}`)
 
 	type args struct {
 		opts []ErrOption
@@ -81,6 +84,12 @@ func TestNew(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := New(tt.args.opts...)
+
+			// check to make sure the id was set to a valid hex string
+			if !hexReg.MatchString(got.GetID()) {
+				t.Errorf("New() error id was not set correctly")
+			}
+
 			// run any final setup before we check the output
 			if tt.setup != nil {
 				tt.setup(got)
@@ -144,7 +153,7 @@ func TestError_WrapPanic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := func() (e error) {
-				e = New(FmtNoStack(true))
+				e = New(FmtNoStack(true), FmtNoID(true))
 				defer (e.(*Error)).WrapPanic(FmtNoStack(true))
 
 				if tt.wantErr {
@@ -195,7 +204,7 @@ func TestError_Panic(t *testing.T) {
 		{
 			"print error",
 			fields{
-				opts: []ErrOption{WithCode(1), FmtNoStack(true)},
+				opts: []ErrOption{WithCode(1), FmtNoStack(true), FmtNoID(true)},
 			},
 			args{
 				print: true,
@@ -253,7 +262,7 @@ func TestError_Add(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := New(FmtNoStack(true)).Add(tt.args.opts...)
+			e := New(FmtNoStack(true), FmtNoID(true)).Add(tt.args.opts...)
 
 			got := e.Add(tt.args.opts...)
 

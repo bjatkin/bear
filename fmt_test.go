@@ -5,7 +5,8 @@ import (
 )
 
 func TestNewFmt(t *testing.T) {
-	defaultOpts := []ErrOption{FmtNoStack(true)}
+	// default options to make testing easier
+	defaultOpts := []ErrOption{FmtNoStack(true), FmtNoID(true)}
 
 	type args struct {
 		opts []ErrOption
@@ -45,7 +46,9 @@ func TestNewFmt(t *testing.T) {
 		},
 		{
 			"with stack",
-			args{},
+			args{
+				opts: []ErrOption{FmtNoID(true)},
+			},
 			func(e *Error) {
 				e.stack = []stackFrame{
 					{filename: "test.go", line: 100},
@@ -62,6 +65,16 @@ func TestNewFmt(t *testing.T) {
 			},
 			nil,
 			`{}`,
+		},
+		{
+			"with id",
+			args{
+				opts: []ErrOption{FmtNoStack(true)},
+			},
+			func(e *Error) {
+				e.id = "test"
+			},
+			`{"id":"test"}`,
 		},
 	}
 	for _, tt := range tests {

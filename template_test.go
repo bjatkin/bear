@@ -21,14 +21,14 @@ func TestTemplate_New(t *testing.T) {
 				opts: []ErrOption{},
 			},
 			args{
-				opts: []ErrOption{WithCode(1), FmtNoStack(true)},
+				opts: []ErrOption{WithCode(1), FmtNoStack(true), FmtNoID(true)},
 			},
 			`{"code":1}`,
 		},
 		{
-			"no stack template",
+			"no stack or id template",
 			fields{
-				opts: []ErrOption{FmtNoStack(true)},
+				opts: []ErrOption{FmtNoStack(true), FmtNoID(true)},
 			},
 			args{
 				opts: []ErrOption{WithCode(1)},
@@ -39,7 +39,9 @@ func TestTemplate_New(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := NewTemplate(tt.fields.opts...)
-			if got := tr.New(tt.args.opts...).Error(); got != tt.want {
+			e := tr.New(tt.args.opts...)
+
+			if got := e.Error(); got != tt.want {
 				t.Errorf("Template.New() = %v, want %v", got, tt.want)
 			}
 		})

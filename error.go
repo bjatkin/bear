@@ -4,18 +4,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/bjatkin/bear/pkg/metrics"
 )
 
 var (
-	panicErr = NewType("Panic Error")
+	PanicErr = NewType("Panic Error")
 )
+
+// stackFrame is a stack frame in the codes execution
+type stackFrame struct {
+	filename string
+	line     int
+}
+
+func (f stackFrame) String() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		panic("failed to get current working dir: " + err.Error())
+	}
+	return fmt.Sprintf("%s:%d", strings.TrimPrefix(f.filename, dir+"/"), f.line)
+}
 
 // Error is a custom bear error
 type Error struct {
+	id       string
 	parents  []error
 	errType  *ErrType
 	tags     map[string]interface{}
@@ -32,28 +49,16 @@ type Error struct {
 	noStack     bool
 	noParents   bool
 	noMsg       bool
+	noID        bool
 
 	// panic settings
 	stdErr io.Writer
 }
 
-// stackFrame is a stack frame in the codes execution
-type stackFrame struct {
-	filename string
-	line     int
-}
-
-func (f stackFrame) String() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		panic("failed to get current working dir: " + err.Error())
-	}
-	return fmt.Sprintf("%s:%d", strings.TrimPrefix(f.filename, dir+"/"), f.line)
-}
-
 // New creates a new bear.Error
 func New(opts ...ErrOption) *Error {
 	e := &Error{
+		id:     newRandomID(),
 		stack:  getStackTrace(2),
 		stdErr: os.Stderr,
 	}
@@ -62,6 +67,19 @@ func New(opts ...ErrOption) *Error {
 	}
 
 	return e
+}
+
+func newRandomID() string {
+	randSource := rand.NewSource(time.Now().UnixNano())
+	idLen := 64
+	ref := "abcdef0123456789"
+
+	var id string
+	for i := 0; i < idLen; i++ {
+		id += string(ref[randSource.Int63()%int64(len(ref))])
+	}
+
+	return id
 }
 
 // Wrap creates a new bear.Error with parent err
@@ -242,11 +260,16 @@ func (e *Error) GetTag(tag string) (interface{}, bool) {
 	return i, ok
 }
 
+// GetID returns the ID of the error
+func (e *Error) GetID() string {
+	return e.id
+}
+
 // WrapPanic should be used as a defer function, it will catch any panics inside the function as wrap them as a parent error
 // the provided opts are used to create the new panic error
 func (e *Error) WrapPanic(opts ...ErrOption) {
 	if err := recover(); err != nil {
-		parent := New(opts...).Add(WithErrType(panicErr))
+		parent := New(opts...).Add(WithErrType(PanicErr))
 
 		switch v := err.(type) {
 		// all the int types

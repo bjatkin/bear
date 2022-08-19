@@ -8,6 +8,7 @@ import (
 
 // jsonError mirriors the Error type but it's fields are exported so it can be json marshled
 type jsonError struct {
+	ID       *string                `json:"id,omitempty"`
 	Parents  []jsonError            `json:"parents,omitempty"`
 	ErrType  *ErrType               `json:"errType,omitempty"`
 	Tags     map[string]interface{} `json:"tags,omitempty"`
@@ -23,6 +24,7 @@ type jsonError struct {
 // newJSONError creates a new jsonError from an Error
 func newJSONError(e *Error) jsonError {
 	err := jsonError{
+		ID:       &e.id,
 		ErrType:  e.errType,
 		Tags:     e.tags,
 		Labels:   mapToArray(e.labels),
@@ -33,12 +35,16 @@ func newJSONError(e *Error) jsonError {
 		ExitCode: e.exitCode,
 	}
 
-	if !e.noParents {
-		err.Parents = buildParents(e.parents, e.noStack, e.noMsg)
-	}
-
 	if e.noMsg {
 		err.Msg = nil
+	}
+
+	if e.noID {
+		err.ID = nil
+	}
+
+	if !e.noParents {
+		err.Parents = buildParents(e.parents, e.noStack, e.noMsg, e.noID)
 	}
 
 	if !e.noStack {
@@ -51,7 +57,7 @@ func newJSONError(e *Error) jsonError {
 }
 
 // buildParents builds an array of jsonErrors from a slice of parent errors
-func buildParents(parents []error, noStack, noMsg bool) []jsonError {
+func buildParents(parents []error, noStack, noMsg, noID bool) []jsonError {
 	var jsonParents []jsonError
 	for _, parent := range parents {
 		berr, _ := AsBerr(parent)
@@ -61,6 +67,9 @@ func buildParents(parents []error, noStack, noMsg bool) []jsonError {
 		}
 		if noMsg {
 			jerr.Msg = nil
+		}
+		if noID {
+			jerr.ID = nil
 		}
 
 		jsonParents = append(jsonParents, jerr)
