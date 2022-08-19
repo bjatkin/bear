@@ -7,6 +7,8 @@ import (
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/bjatkin/bear/pkg/metrics"
 )
 
 var (
@@ -19,6 +21,8 @@ type Error struct {
 	errType  *ErrType
 	tags     map[string]interface{}
 	labels   map[string]struct{}
+	metrics  []*metrics.Metric
+	fmetrics []*metrics.FMetric
 	msg      *string
 	code     *int
 	exitCode *int
@@ -117,6 +121,20 @@ func WithLabels(names ...string) ErrOption {
 	}
 }
 
+// WithMetrics adds new metrics to the error
+func WithMetrics(metrics ...*metrics.Metric) ErrOption {
+	return func(e *Error) {
+		e.metrics = append(e.metrics, metrics...)
+	}
+}
+
+// WithFMetric adds new fmetrics to the error
+func WithFMetric(metrics ...*metrics.FMetric) ErrOption {
+	return func(e *Error) {
+		e.fmetrics = append(e.fmetrics, metrics...)
+	}
+}
+
 // ErrType gives the error a general error class
 type ErrType string
 
@@ -183,6 +201,8 @@ func (e *Error) Error() string {
 		ErrType  *ErrType               `json:"errType,omitempty"`
 		Tags     map[string]interface{} `json:"tags,omitempty"`
 		Labels   []string               `json:"labels,omitempty"`
+		Metrics  []*metrics.Metric      `json:"metrics,omitempty"`
+		Fmetrics []*metrics.FMetric     `json:"fmetrics,omitempty"`
 		Msg      *string                `json:"msg,omitempty"`
 		Code     *int                   `json:"code,omitempty"`
 		ExitCode *int                   `json:"exitCode,omitempty"`
@@ -191,6 +211,8 @@ func (e *Error) Error() string {
 		ErrType:  e.errType,
 		Tags:     e.tags,
 		Labels:   mapToArray(e.labels),
+		Metrics:  e.metrics,
+		Fmetrics: e.fmetrics,
 		Msg:      e.msg,
 		Code:     e.code,
 		ExitCode: e.exitCode,

@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/bjatkin/bear/pkg/metrics"
 )
 
 func TestNew(t *testing.T) {
@@ -51,6 +53,14 @@ func TestNew(t *testing.T) {
 			},
 			nil,
 			`{"labels":["default","test"]}`,
+		},
+		{
+			"with metrics",
+			args{
+				opts: append(defaultOpts, WithMetrics(metrics.NewMetric("test"), metrics.NewMetric("again"))),
+			},
+			nil,
+			`{"metrics":[{"name":"test","value":0},{"name":"again","value":0}]}`,
 		},
 		{
 			"with error type",
