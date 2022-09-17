@@ -30,7 +30,16 @@ func (t *Template) Union(template *Template) {
 func (t *Template) New(opts ...ErrOption) *Error {
 	err := New(append(t.opts, opts...)...)
 
-	// reset the stack trace since were calling new from inside the package
+	// reset the stack trace since we're calling new from inside the package
+	err.stack = getStackTrace(2)
+
+	return err
+}
+
+func (t *Template) Wrap(e error, opts ...ErrOption) *Error {
+	err := Wrap(e, append(t.opts, opts...)...)
+
+	// reset the stack trace since we're calling from inside the package
 	err.stack = getStackTrace(2)
 
 	return err

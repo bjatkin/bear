@@ -324,3 +324,14 @@ func AsBerr(e error) (*Error, bool) {
 
 	return New(WithMsg(e.Error())), true
 }
+
+// Is returns true if the error is of the same type as the error provided
+// If e is a bear.Error the errType field will be checked
+// otherwise the e.Error() method will be check to see if it matches the error type
+func Is(e error, t ErrType) bool {
+	if berr, ok := AsBerr(e); ok {
+		return berr.errType != nil && *berr.errType == t
+	}
+
+	return e.Error() == string(t)
+}

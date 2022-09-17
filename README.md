@@ -9,7 +9,11 @@ There are future features that are planned for this library.
 They are ordered roughly in the order of priority.
 This list is likely to change a lot and none of these features should be considerd gaurenteed.
 
+* Add a Wrap method to the Template type
+
 * Add a one stack option to print only the longest stack (e.g. the stack of the most senior error)
+
+* Improve the error stack. Right now it's including files like proc.go and asm_amd64.s
 
 * Add more options to transform JSON (filters, ordering, extra fields, etc.)
 
@@ -20,3 +24,4 @@ This list is likely to change a lot and none of these features should be conside
 * Options to transform metrics (filters, combinations, extra metrics, etx.)
 
 * Combining Metric and FMetric into a single type, this will allow them to show up in the same place in the resulting json and prevent any differences showing up between the two types
+
